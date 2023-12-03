@@ -57,8 +57,6 @@ def set_seed():
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
 
-set_seed()
-
 def export_model(model, model_path, bs = 1, dynamic = False, save = False):
   """
     Export a PyTorch model to the ONNX format.
@@ -110,6 +108,7 @@ def export_model(model, model_path, bs = 1, dynamic = False, save = False):
     files.download(model_path)
 
 def prepare_test_data():
+  set_seed()
   print('==> Preparing data..')
 
   transform_test = transforms.Compose([
@@ -139,7 +138,7 @@ def prepare_test_data():
 def get_acc(model_path, data, device = 'cuda'):
 
   # print(len(data),)
-
+  set_seed()
   def to_numpy(tensor):
     return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
@@ -197,7 +196,7 @@ def simplify_model(model_path, save = False):
 
 
 def benchmark(model_path, bs = 100, bs_divide = True):
-
+    set_seed()
     print(bcolors.OKBLUE, f"Model - {model_path}", bcolors.ENDC)
     # import onnxruntime
     import time
