@@ -23,16 +23,16 @@ import onnxruntime as ort
 from onnxruntime import quantization
 from tqdm import tqdm
 
-# class bcolors:
-#   HEADER = '\033[95m'
-#   OKBLUE = '\033[94m'
-#   OKCYAN = '\033[96m'
-#   OKGREEN = '\033[92m'
-#   WARNING = '\033[93m'
-#   FAIL = '\033[91m'
-#   ENDC = '\033[0m'
-#   BOLD = '\033[1m'
-#   UNDERLINE = '\033[4m'
+class bcolors:
+  HEADER = '\033[95m'
+  OKBLUE = '\033[94m'
+  OKCYAN = '\033[96m'
+  OKGREEN = '\033[92m'
+  WARNING = '\033[93m'
+  FAIL = '\033[91m'
+  ENDC = '\033[0m'
+  BOLD = '\033[1m'
+  UNDERLINE = '\033[4m'
 
 def set_seed():
   seed_value= 42
@@ -57,7 +57,7 @@ def set_seed():
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
 
-# set_seed()
+set_seed()
 
 def export_model(model, model_path, bs = 1, dynamic = False, save = False):
   """
@@ -81,7 +81,20 @@ def export_model(model, model_path, bs = 1, dynamic = False, save = False):
   with torch.no_grad():
     torch_out = model(x)
   # Export the model
-  torch.onnx.export(model,               # model being run
+  if dynamic:
+    torch.onnx.export(model,               # model being run
+                  x,                         # model input (or a tuple for multiple inputs)
+                  model_path,   # where to save the model (can be a file or file-like object)
+                  export_params=True,        # store the trained parameter weights inside the model file
+                  opset_version=11,          # the ONNX version to export the model to
+                  do_constant_folding=False,  # whether to execute constant folding for optimization
+                  input_names = ['input'],   # the model's input names
+                  output_names = ['output'], # the model's output names
+                  dynamic_axes={'input' : {0 : 'batch_size'},    # variable length axes
+                                'output' : {0 : 'batch_size'}}
+                  )
+  else:
+        torch.onnx.export(model,               # model being run
                   x,                         # model input (or a tuple for multiple inputs)
                   model_path,   # where to save the model (can be a file or file-like object)
                   export_params=True,        # store the trained parameter weights inside the model file
@@ -92,6 +105,7 @@ def export_model(model, model_path, bs = 1, dynamic = False, save = False):
                   # dynamic_axes={'input' : {0 : 'batch_size'},    # variable length axes
                   #               'output' : {0 : 'batch_size'}}
                   )
+
   if save:
     files.download(model_path)
 
