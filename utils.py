@@ -19,7 +19,7 @@ import argparse
 from tqdm import tqdm
 from PIL import Image
 import glob
-import onnxruntime as ort
+import onnxruntime 
 from onnxruntime import quantization
 from tqdm import tqdm
 
@@ -147,7 +147,7 @@ def get_acc(model_path, data, device = 'cuda'):
   if device == 'cuda' and torch.cuda.is_available():
     ort_provider = ['CUDAExecutionProvider']
   print('Ort_provider - ', ort_provider)
-  ort_sess = ort.InferenceSession(model_path, providers=ort_provider)
+  ort_sess = onnxruntime.InferenceSession(model_path, providers=ort_provider)
 
   correct_pt = 0
   correct_onnx = 0
@@ -202,7 +202,7 @@ def benchmark(model_path, bs = 100, bs_divide = True):
     # import onnxruntime
     import time
     ort_provider = ['CPUExecutionProvider']
-    session = ort.InferenceSession(model_path, providers = ort_provider)
+    session = onnxruntime.InferenceSession(model_path, providers = ort_provider)
     print(session._providers)
     input_name = session.get_inputs()[0].name
 
@@ -211,7 +211,7 @@ def benchmark(model_path, bs = 100, bs_divide = True):
 
 
     input_data = np.zeros((bs, 3, 32, 32), np.float32)
-    X_ortvalue = ort.OrtValue.ortvalue_from_numpy(input_data, 'cpu')
+    X_ortvalue = onnxruntime.OrtValue.ortvalue_from_numpy(input_data, 'cpu')
     # Warming up
     _ = session.run([], {input_name: X_ortvalue})
     for i in tqdm(range(runs)):
@@ -227,7 +227,7 @@ def benchmark(model_path, bs = 100, bs_divide = True):
 
 
     ort_provider2 = ['CUDAExecutionProvider']
-    session2 = ort.InferenceSession(model_path, providers= ort_provider2)
+    session2 = onnxruntime.InferenceSession(model_path, providers= ort_provider2)
 
     print(session2._providers)
     input_name = session2.get_inputs()[0].name
@@ -235,7 +235,7 @@ def benchmark(model_path, bs = 100, bs_divide = True):
     total = 0.0
     # runs = 1000
     input_data = np.zeros((bs, 3, 32, 32), np.float32)
-    X_ortvalue2 = ort.OrtValue.ortvalue_from_numpy(input_data, 'cuda', 0)
+    X_ortvalue2 = onnxruntime.OrtValue.ortvalue_from_numpy(input_data, 'cuda', 0)
     # Warming up
     _ = session2.run([], {input_name: X_ortvalue2})
     for i in tqdm(range(runs)):
