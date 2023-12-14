@@ -1,0 +1,5 @@
+onnxsim
+onnx_opcounter
+cifar10
+onnx
+coverage

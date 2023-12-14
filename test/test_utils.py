@@ -7,7 +7,7 @@ import os
 # import torchvision
 
 sys.path.append('/content/')
-from quantization_cv.utils import export_model, prepare_test_data, get_acc 
+from quantization_cv.utils import export_model, prepare_test_data, get_acc, get_onnx_model_info
 
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
@@ -88,12 +88,20 @@ class TestGetAcc(unittest.TestCase):
 
     def tearDown(self):
         # Clean up any resources created during the test
-        pass
+        # Specify the model path used for testing
+        model_path = 'test_model.onnx'
+
+        # Check if the model file exists and delete it
+        if os.path.exists(model_path):
+            os.remove(model_path)
+
+        import shutil
+        shutil.rmtree('data/')
 
     def test_get_acc(self):
         from torchvision.models import resnet18
         # Assuming you have a minimal ResNet model in ONNX format and a test data loader
-        model_path = 'minimal_resnet.onnx'  # Replace with the actual model path
+        model_path = 'test_model.onnx'  # Replace with the actual model path
 
         # Create a dummy ResNet model for testing
         dummy_resnet = resnet18(pretrained=False, num_classes=10)  # Assuming CIFAR-10 has 10 classes
@@ -116,11 +124,47 @@ class TestGetAcc(unittest.TestCase):
         # Call the function to get accuracy
         accuracy = get_acc(model_path, testloader, device='cpu')  # Replace 'cpu' with 'cuda' if needed
 
-        # Add your assertions here based on the expected behavior of the get_acc function
-
-        # For example, you can check if the returned accuracy is within a reasonable range
         self.assertGreaterEqual(accuracy, 0.0)
         self.assertLessEqual(accuracy, 100.0)
+
+class TestGetOnnxModelInfo(unittest.TestCase):
+
+    def setUp(self):
+        class DummyModel(torch.nn.Module):
+            def forward(self, x):
+                return x
+
+        model = DummyModel()
+
+        # Specify the model path for testing
+        self.model_path = 'test_model.onnx'
+        export_model(model, self.model_path , bs=1, dynamic=False, save=False)
+        # Initialize any necessary resources before each test
+
+    def tearDown(self):
+        # Clean up any resources created during the test
+        # Specify the model path used for testing
+        model_path = 'test_model.onnx'
+
+        # Check if the model file exists and delete it
+        if os.path.exists(model_path):
+            os.remove(model_path)
+
+    def test_get_onnx_model_info(self):
+
+
+        # Call the function to get ONNX model information
+        model_info = get_onnx_model_info(self.model_path )
+
+        # Add your assertions here based on the expected behavior of the get_onnx_model_info function
+
+        # For example, you can check if the returned dictionary contains the expected keys
+        self.assertIn("params", model_info)
+        self.assertIn("model_size", model_info)
+
+        # You can also check if the "params" value is a positive integer
+        self.assertIsInstance(model_info["params"], int)
+        self.assertGreaterEqual(model_info["params"], 0)
 
 if __name__ == '__main__':
     unittest.main()
