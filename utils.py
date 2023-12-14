@@ -22,6 +22,7 @@ import glob
 import onnxruntime 
 from onnxruntime import quantization
 from tqdm import tqdm
+import time
 
 class bcolors:
   HEADER = '\033[95m'
@@ -195,56 +196,99 @@ def simplify_model(model_path, save = False):
   return new_path
 
 
-def benchmark(model_path, bs = 100, bs_divide = True):
+# def benchmark(model_path, bs = 100, bs_divide = True):
+#     set_seed()
+#     print(bcolors.OKBLUE, f"Model - {model_path}", bcolors.ENDC)
+#     # import onnxruntime
+#     import time
+#     ort_provider = ['CPUExecutionProvider']
+#     session = onnxruntime.InferenceSession(model_path, providers = ort_provider)
+#     print(session._providers)
+#     input_name = session.get_inputs()[0].name
+
+#     total = 0.0
+#     runs = 100
+
+#     input_data = np.zeros((bs, 3, 32, 32), np.float32)
+#     X_ortvalue = onnxruntime.OrtValue.ortvalue_from_numpy(input_data, 'cpu')
+#     # Warming up
+#     _ = session.run([], {input_name: X_ortvalue})
+#     for i in tqdm(range(runs)):
+#         start = time.perf_counter()
+#         _ = session.run([], {input_name: X_ortvalue})
+#         end = (time.perf_counter() - start) * 1000
+#         total += end
+#     total /= runs
+#     print(f"CPU Avg: {total:.2f}ms, per 1 img: {total/bs:.2f}ms")
+
+
+#     ort_provider2 = ['CUDAExecutionProvider']
+#     session2 = onnxruntime.InferenceSession(model_path, providers= ort_provider2)
+
+#     print(session2._providers)
+#     input_name = session2.get_inputs()[0].name
+
+#     total = 0.0
+#     # runs = 1000
+#     input_data = np.zeros((bs, 3, 32, 32), np.float32)
+#     X_ortvalue2 = onnxruntime.OrtValue.ortvalue_from_numpy(input_data, 'cuda', 0)
+#     # Warming up
+#     _ = session2.run([], {input_name: X_ortvalue2})
+#     for i in tqdm(range(runs)):
+#         start = time.perf_counter()
+#         _ = session2.run([], {input_name: X_ortvalue2})
+#         end = (time.perf_counter() - start) * 1000
+#         total += end
+#         # print(f"{end:.2f}ms")
+#     total /= runs
+#     print(f"GPU Avg: {total:.2f}, per 1 img: {total/bs:.2f}ms")
+
+def benchmark(model_path, bs=100, bs_divide=True, runs=100):
     set_seed()
     print(bcolors.OKBLUE, f"Model - {model_path}", bcolors.ENDC)
-    # import onnxruntime
-    import time
+
+    # CPU benchmark
     ort_provider = ['CPUExecutionProvider']
-    session = onnxruntime.InferenceSession(model_path, providers = ort_provider)
-    print(session._providers)
-    input_name = session.get_inputs()[0].name
+    session_cpu = onnxruntime.InferenceSession(model_path, providers=ort_provider)
+    input_name_cpu = session_cpu.get_inputs()[0].name
 
-    total = 0.0
-    runs = 100
+    total_cpu = 0.0
+    input_data_cpu = np.zeros((bs, 3, 32, 32), np.float32)
+    X_ortvalue_cpu = onnxruntime.OrtValue.ortvalue_from_numpy(input_data_cpu, 'cpu')
 
-
-    input_data = np.zeros((bs, 3, 32, 32), np.float32)
-    X_ortvalue = onnxruntime.OrtValue.ortvalue_from_numpy(input_data, 'cpu')
     # Warming up
-    _ = session.run([], {input_name: X_ortvalue})
-    for i in tqdm(range(runs)):
-        start = time.perf_counter()
-        _ = session.run([], {input_name: X_ortvalue})
-        end = (time.perf_counter() - start) * 1000
-        total += end
-        # print(f"{end:.2f}ms")
-    total /= runs
-    # print(f"CPU Avg: {total:.2f}ms")
-    print(f"CPU Avg: {total:.2f}ms, per 1 img: {total/bs:.2f}ms")
+    _ = session_cpu.run([], {input_name_cpu: X_ortvalue_cpu})
 
+    for _ in tqdm(range(runs), desc="CPU Benchmark"):
+        start_cpu = time.perf_counter()
+        _ = session_cpu.run([], {input_name_cpu: X_ortvalue_cpu})
+        end_cpu = (time.perf_counter() - start_cpu) * 1000
+        total_cpu += end_cpu
 
+    total_cpu /= runs
+    print(f"CPU Avg: {total_cpu:.2f}ms, per 1 img: {total_cpu / bs:.2f}ms")
 
-    ort_provider2 = ['CUDAExecutionProvider']
-    session2 = onnxruntime.InferenceSession(model_path, providers= ort_provider2)
+    # GPU benchmark
+    ort_provider_gpu = ['CUDAExecutionProvider']
+    session_gpu = onnxruntime.InferenceSession(model_path, providers=ort_provider_gpu)
+    input_name_gpu = session_gpu.get_inputs()[0].name
 
-    print(session2._providers)
-    input_name = session2.get_inputs()[0].name
+    total_gpu = 0.0
+    input_data_gpu = np.zeros((bs, 3, 32, 32), np.float32)
+    X_ortvalue_gpu = onnxruntime.OrtValue.ortvalue_from_numpy(input_data_gpu, 'cuda', 0)
 
-    total = 0.0
-    # runs = 1000
-    input_data = np.zeros((bs, 3, 32, 32), np.float32)
-    X_ortvalue2 = onnxruntime.OrtValue.ortvalue_from_numpy(input_data, 'cuda', 0)
     # Warming up
-    _ = session2.run([], {input_name: X_ortvalue2})
-    for i in tqdm(range(runs)):
-        start = time.perf_counter()
-        _ = session2.run([], {input_name: X_ortvalue2})
-        end = (time.perf_counter() - start) * 1000
-        total += end
-        # print(f"{end:.2f}ms")
-    total /= runs
-    print(f"GPU Avg: {total:.2f}, per 1 img: {total/bs:.2f}ms")
+    _ = session_gpu.run([], {input_name_gpu: X_ortvalue_gpu})
+
+    for _ in tqdm(range(runs), desc="GPU Benchmark"):
+        start_gpu = time.perf_counter()
+        _ = session_gpu.run([], {input_name_gpu: X_ortvalue_gpu})
+        end_gpu = (time.perf_counter() - start_gpu) * 1000
+        total_gpu += end_gpu
+
+    total_gpu /= runs
+    print(f"GPU Avg: {total_gpu:.2f}, per 1 img: {total_gpu / bs:.2f}ms")
+
 
 def get_onnx_model_info(model_path):
     """
