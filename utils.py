@@ -164,9 +164,7 @@ def get_acc(model_path, data, device = 'cuda'):
     ort_preds = np.argmax(ort_outs, axis=1)
     correct_onnx += np.sum(np.equal(ort_preds, to_numpy(label_batch)))
 
-  print("\n")
-
-  print(f"ONNX top-1 acc = {(100.0 * correct_onnx/(len(data)*bs))} with {correct_onnx} correct samples")
+  print(f"ONNX top-1 acc = {(100.0 * correct_onnx/(len(data)*bs))} with {correct_onnx} correct samples\n")
   return (100.0 * correct_onnx/(len(data)*bs))
 
 def simplify_model(model_path, save = False):

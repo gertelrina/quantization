@@ -58,6 +58,8 @@ class TestPrepareTestData(unittest.TestCase):
 
     def tearDown(self):
         # Clean up any resources created during the test
+        import shutil
+        shutil.rmtree('data/')
         pass
 
     def test_prepare_test_data(self):
@@ -122,7 +124,7 @@ class TestGetAcc(unittest.TestCase):
         testloader = DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
 
         # Call the function to get accuracy
-        accuracy = get_acc(model_path, testloader, device='cpu')  # Replace 'cpu' with 'cuda' if needed
+        accuracy = get_acc(model_path, testloader, device='cuda')  # Replace 'cpu' with 'cuda' if needed
 
         self.assertGreaterEqual(accuracy, 0.0)
         self.assertLessEqual(accuracy, 100.0)
